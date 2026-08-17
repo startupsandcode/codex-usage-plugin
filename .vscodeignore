@@ -1,0 +1,7 @@
+.github/**
+docs/**
+test/**
+node_modules/**
+dist/**
+.gitignore
+package-lock.json

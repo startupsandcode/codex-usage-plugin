@@ -1,10 +1,80 @@
 {
   "name": "codex-usage-status",
   "displayName": "Codex Usage Status",
+  "description": "Shows Codex rate-limit usage and reset times in the VS Code status bar.",
   "version": "0.1.0",
   "publisher": "startupsandcode",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/startupsandcode/codex-usage-plugin.git"
+  },
+  "homepage": "https://github.com/startupsandcode/codex-usage-plugin#readme",
+  "bugs": {
+    "url": "https://github.com/startupsandcode/codex-usage-plugin/issues"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "extensionKind": [
+    "ui"
+  ],
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "codex",
+    "openai",
+    "usage",
+    "status bar",
+    "rate limit"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:codexUsage.refresh",
+    "onCommand:codexUsage.openCodex"
+  ],
+  "main": "./src/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "codexUsage.refresh",
+        "title": "Codex Usage: Refresh"
+      },
+      {
+        "command": "codexUsage.openCodex",
+        "title": "Codex Usage: Open Codex"
+      }
+    ],
+    "configuration": {
+      "title": "Codex Usage Status",
+      "properties": {
+        "codexUsage.refreshIntervalSeconds": {
+          "type": "number",
+          "default": 60,
+          "minimum": 15,
+          "description": "Fallback refresh interval. Codex usage-change notifications refresh immediately."
+        },
+        "codexUsage.codexExecutable": {
+          "type": "string",
+          "default": "",
+          "description": "Optional Codex CLI path. By default, the official Codex extension's bundled CLI is used."
+        }
+      }
+    }
+  },
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "check": "node --check src/extension.js && node --check src/rpc.js && node --check src/usage.js && npm test",
+    "package": "node -e \"require('node:fs').mkdirSync('dist',{recursive:true})\" && vsce package --out dist/codex-usage-status.vsix"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^3.9.2"
   }
 }
