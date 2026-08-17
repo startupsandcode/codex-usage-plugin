@@ -1,0 +1,10 @@
+{
+  "name": "codex-usage-status",
+  "displayName": "Codex Usage Status",
+  "version": "0.1.0",
+  "publisher": "startupsandcode",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
+}
