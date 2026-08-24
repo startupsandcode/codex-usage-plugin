@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.0
+
+- Package the extension for GitHub release installation as a VSIX.
+- Keep the Codex app-server client version aligned with the extension release.
+
 ## 0.1.0
 
 - Show Codex rate-limit usage windows in the VS Code status bar.

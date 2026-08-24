@@ -108,7 +108,7 @@ async function connect() {
 
   try {
     await rpc.request('initialize', {
-      clientInfo: { name: 'codex-usage-status', version: '0.1.0' },
+      clientInfo: { name: 'codex-usage-status', version: '1.1.0' },
       capabilities: { experimentalApi: true },
     });
     rpc.notify('initialized');
