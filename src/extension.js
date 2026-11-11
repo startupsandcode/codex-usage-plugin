@@ -64,6 +64,8 @@ async function refresh() {
   } catch (error) {
     output.appendLine(`Refresh failed: ${error.message}`);
     setUnavailable(error.message);
+    // A hung app-server never exits on its own; kill it so the exit handler reconnects.
+    if (error.code === 'RPC_TIMEOUT' && child && !child.killed) child.kill();
   }
 }
 
@@ -82,20 +84,24 @@ async function connect() {
 
   const executable = bundledCodexPath();
   output.appendLine(`Starting ${executable} app-server`);
-  child = spawn(executable, ['app-server', '--stdio'], {
+  const proc = spawn(executable, ['app-server', '--stdio'], {
     stdio: ['pipe', 'pipe', 'pipe'],
     windowsHide: true,
   });
-  rpc = new JsonLineRpc(child.stdout, child.stdin);
+  child = proc;
+  rpc = new JsonLineRpc(proc.stdout, proc.stdin);
 
-  child.stderr.setEncoding('utf8');
-  child.stderr.on('data', (chunk) => output.append(chunk));
-  child.on('error', (error) => {
+  proc.stderr.setEncoding('utf8');
+  proc.stderr.on('data', (chunk) => output.append(chunk));
+  proc.on('error', (error) => {
+    if (child !== proc) return;
     output.appendLine(`Codex app-server error: ${error.message}`);
     setUnavailable(error.message);
     scheduleReconnect();
   });
-  child.on('exit', (code, signal) => {
+  proc.on('exit', (code, signal) => {
+    // Ignore exits from a superseded process so they don't tear down the new connection.
+    if (child !== proc) return;
     output.appendLine(`Codex app-server exited (${code ?? signal ?? 'unknown'})`);
     rpc?.dispose();
     rpc = undefined;
@@ -106,6 +112,12 @@ async function connect() {
     if (message.method === 'account/rateLimits/updated') void refresh();
   });
 
+  // Arm polling before the first request so a stalled first call can't prevent retries.
+  const seconds = vscode.workspace
+    .getConfiguration('codexUsage')
+    .get('refreshIntervalSeconds', 60);
+  refreshTimer = setInterval(refresh, Math.max(15, seconds) * 1000);
+
   try {
     await rpc.request('initialize', {
       clientInfo: { name: 'codex-usage-status', version: '1.1.0' },
@@ -113,10 +125,6 @@ async function connect() {
     });
     rpc.notify('initialized');
     await refresh();
-    const seconds = vscode.workspace
-      .getConfiguration('codexUsage')
-      .get('refreshIntervalSeconds', 60);
-    refreshTimer = setInterval(refresh, Math.max(15, seconds) * 1000);
   } catch (error) {
     output.appendLine(`Initialization failed: ${error.message}`);
     setUnavailable(error.message);

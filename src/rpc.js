@@ -1,7 +1,8 @@
 const { EventEmitter } = require('node:events');
 
 class JsonLineRpc {
-  constructor(readable, writable) {
+  constructor(readable, writable, { timeoutMs = 15_000 } = {}) {
+    this.timeoutMs = timeoutMs;
     this.readable = readable;
     this.writable = writable;
     this.nextId = 1;
@@ -16,7 +17,16 @@ class JsonLineRpc {
   request(method, params) {
     const id = this.nextId++;
     const promise = new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
+      const timer = setTimeout(() => {
+        this.pending.delete(id);
+        const error = new Error(`Codex app-server did not respond to ${method} within ${this.timeoutMs}ms`);
+        error.code = 'RPC_TIMEOUT';
+        reject(error);
+      }, this.timeoutMs);
+      this.pending.set(id, {
+        resolve: (value) => { clearTimeout(timer); resolve(value); },
+        reject: (error) => { clearTimeout(timer); reject(error); },
+      });
     });
     this.writable.write(`${JSON.stringify({ id, method, params })}\n`);
     return promise;
